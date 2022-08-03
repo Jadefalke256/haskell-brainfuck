@@ -10,20 +10,26 @@ import Control.Monad
 import Control.Applicative
 import Control.Arrow 
 
-main :: IO ()
-main = run ">++++++++[<+++++++++>-]<.>++++[<+++++++>-]<+.+++++++..+++.>>++++++[<+++++++>-]<++.------------.>++++++[<+++++++++>-]<+.<.+++.------.--------.>>>++++[<++++++++>-]<+."
-  where
-    run s = interpret $ run' (parse bfParser s)
-    run' (Just (bf, _)) = bf
+import System.Environment
 
+main :: IO ()
+--main = run ">++++++++[<+++++++++>-]<.>++++[<+++++++>-]<+.+++++++..+++.>>++++++[<+++++++>-]<++.------------.>++++++[<+++++++++>-]<+.<.+++.------.--------.>>>++++[<++++++++>-]<+."
+main = do args <- getArgs
+          handle args
+  where
+    handle :: [String] -> IO ()
+    handle ["file", fName] = readFile fName >>= interpret
+    handle ["string", str] = interpret str
+    handle _ = putStrLn "could not find command"
 
 type Brainfuck = [Instruction]
 
 data Instruction = Incr | Decr | Print | Read | SRight | SLeft | Loop Brainfuck | NoOp
   deriving (Show)
 
-interpret :: Brainfuck -> IO ()
-interpret bf = void $ interpret' bf zeroes 
+interpret :: String -> IO ()
+interpret bfc = maybe (putStrLn "oop") (\r -> void $ interpret' (fst r) zeroes) parseResult 
+  where parseResult = parse bfParser bfc
 
 
 interpret' :: Brainfuck -> Tape -> IO Tape
@@ -50,7 +56,7 @@ eval ins t = (pure . update) t
 
 
 bfParser :: Parser Brainfuck
-bfParser = many (loopParser <|> instr <|> P (\(x:xs) -> Just (NoOp, xs)))
+bfParser = many (loopParser <|> instr)
 
 loopParser :: Parser Instruction 
 loopParser = do char '['
