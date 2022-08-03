@@ -24,26 +24,23 @@ main = do args <- getArgs
 
 type Brainfuck = [Instruction]
 
-data Instruction = Incr | Decr | Print | Read | SRight | SLeft | Loop Brainfuck | NoOp
+data Instruction = Incr | Decr | Print | Read | SRight | SLeft | Loop Brainfuck
   deriving (Show)
 
 interpret :: String -> IO ()
-interpret bfc = maybe (putStrLn "oop") (\r -> void $ interpret' (fst r) zeroes) parseResult 
-  where parseResult = parse bfParser bfc
-
+interpret bfc = maybe (putStrLn "oop") (\r -> void $ interpret' (fst r) zeroes) (parse bfParser bfc)
 
 interpret' :: Brainfuck -> Tape -> IO Tape
 interpret' = foldr ((>=>) . eval) pure
 
 
 eval :: Instruction -> Tape -> IO Tape
-eval Print t = do putChar $ chr (curr t)
-                  pure t
+eval Print t = putChar (chr (curr t)) >> pure t
 eval Read t = undefined
-eval (Loop bf) t =
-  if curr t == 0 then pure t
-  else interpret' bf t >>= eval (Loop bf)
-eval NoOp t = pure t
+eval (Loop bf) t 
+  | curr t == 0 = pure t
+  | otherwise = interpret' bf t >>= eval (Loop bf)
+
 eval ins t = (pure . update) t
   where
   update = case ins of
@@ -53,8 +50,6 @@ eval ins t = (pure . update) t
     SLeft -> prev
 
 -- Parsing
-
-
 bfParser :: Parser Brainfuck
 bfParser = many (loopParser <|> instr)
 
