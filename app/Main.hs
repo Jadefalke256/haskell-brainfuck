@@ -1,6 +1,7 @@
 module Main where
 
 import Tape
+import Parser
 
 import Data.Char
 import Data.Maybe
@@ -11,6 +12,7 @@ import Control.Applicative
 import Control.Arrow 
 
 import System.Environment
+
 
 main :: IO ()
 --main = run ">++++++++[<+++++++++>-]<.>++++[<+++++++>-]<+.+++++++..+++.>>++++++[<+++++++>-]<++.------------.>++++++[<+++++++++>-]<+.<.+++.------.--------.>>>++++[<++++++++>-]<+."
@@ -40,7 +42,6 @@ eval Read t = undefined
 eval (Loop bf) t 
   | curr t == 0 = pure t
   | otherwise = interpret' bf t >>= eval (Loop bf)
-
 eval ins t = (pure . update) t
   where
   update = case ins of
@@ -48,6 +49,7 @@ eval ins t = (pure . update) t
     Decr -> decr
     SRight -> next
     SLeft -> prev
+    _ -> error "unreachable"
 
 -- Parsing
 bfParser :: Parser Brainfuck
@@ -70,40 +72,4 @@ toInstr c = case c of
                '<' -> SLeft
                ',' -> Read
                '.' -> Print
-
-newtype Parser a = P (String -> Maybe (a, String))
-
-parse :: Parser a -> String -> Maybe (a, String)
-parse (P p) = p
-
-instance Functor Parser where
-  fmap g p = P (fmap (first g) . parse p)
-
-instance Applicative Parser where
-  pure v = P (\inp -> Just (v, inp))
-  pg <*> px = P (\inp -> (parse pg inp) >>= (\(g, out) -> parse (fmap g px) out))
-
-instance Monad Parser where
-  p >>= f = P (\inp -> 
-    case parse p inp of
-      Nothing -> Nothing
-      Just (v, out) -> parse (f v) out)
-
-instance Alternative Parser where 
-  empty = P (const Nothing)
-  p <|> q = P (\inp -> case parse p inp of 
-                              Nothing -> parse q inp
-			      j -> j)
-
-item :: Parser Char
-item = P uncons
-
-sat :: Parser a -> (a -> Bool) -> Parser a
-sat p f = do x <- p
-             if f x then pure x else empty
-
-char :: Char -> Parser Char
-char c = sat item (== c)
-
-chars :: [Char] -> Parser Char
-chars cs = sat item (`elem` cs)
+               _ -> error "unreachable"
