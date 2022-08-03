@@ -19,10 +19,7 @@ instance Applicative Parser where
   pg <*> px = P (parse pg >=> (\(g, out) -> parse (fmap g px) out))
 
 instance Monad Parser where
-  p >>= f = P (\inp -> 
-    case parse p inp of
-      Nothing -> Nothing
-      Just (v, out) -> parse (f v) out)
+  p >>= f = P (parse p >=> (\(v, out) -> parse (f v) out))
 
 instance Alternative Parser where 
   empty = P (const Nothing)

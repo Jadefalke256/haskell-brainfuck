@@ -6,13 +6,14 @@ import Parser
 import Data.Char
 import Data.Maybe
 import Data.List
+import Data.Word
 
 import Control.Monad
 import Control.Applicative
 import Control.Arrow 
 
 import System.Environment
-
+import System.IO
 
 main :: IO ()
 main = do args <- getArgs
@@ -36,19 +37,25 @@ interpret' = foldr ((>=>) . eval) pure
 
 
 eval :: Instruction -> Tape -> IO Tape
-eval Print t = putChar (chr (curr t)) >> pure t
-eval Read t = undefined
-eval (Loop bf) t 
-  | curr t == 0 = pure t
-  | otherwise = interpret' bf t >>= eval (Loop bf)
-eval ins t = (pure . update) t
-  where
-  update = case ins of
-    Incr -> incr
-    Decr -> decr
-    SRight -> next
-    SLeft -> prev
-    _ -> error "unreachable"
+eval ins t =
+    case ins of 
+      Print -> putChar (chr $ curr t) >> pure t 
+      Read -> getByte >>= (\b -> pure $ apply (const b) t)
+      (Loop bf) 
+        | curr t == 0 -> pure t
+	| otherwise -> interpret' bf t >>= eval ins
+      Incr -> pure (incr t)
+      Decr -> pure (decr t)
+      SRight -> pure (next t)
+      SLeft -> pure (prev t)
+
+getByte :: IO Int
+getByte = do
+  hSetBinaryMode stdin True
+  c <- getChar
+  hSetBinaryMode stdin False
+  pure $! digitToInt c
+
 
 -- Parsing
 bfParser :: Parser Brainfuck
