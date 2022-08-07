@@ -9,4 +9,8 @@ stack run [command]
 The available commands are
 ```
 file <filename>
-
+```
+and
+```
+string <bf-code>
+```
