@@ -1,5 +1,3 @@
-{-# LANGUAGE LambdaCase#-}
-
 module Main where
 
 import Tape
@@ -16,7 +14,6 @@ import Control.Arrow
 
 import System.Environment
 import System.IO
-import Data.Maybe (catMaybes)
 
 main :: IO ()
 main = do args <- getArgs
@@ -24,7 +21,7 @@ main = do args <- getArgs
   where
     handle :: [String] -> IO ()
     handle ["file", fName] = readFile fName >>= interpret
-    handle ["string", str] = interpret str >> (print $ parse bfParser str)
+    handle ["string", str] = interpret str
     handle _ = putStrLn "could not find command"
 
 type Brainfuck = [Instruction]
@@ -33,7 +30,7 @@ data Instruction = Incr | Decr | Print | Read | SRight | SLeft | Loop Brainfuck
   deriving (Show)
 
 interpret :: String -> IO ()
-interpret bfc = maybe (putStrLn "oop") (\r -> void $ interpret' (fst r) zeroes) (parse bfParser bfc)
+interpret bfc = maybe (putStrLn "oop") (\r -> void $ interpret' (fst r) zeroes) (parse parseAll bfc)
 
 interpret' :: Brainfuck -> Tape -> IO Tape
 interpret' = foldr ((>=>) . eval) pure
@@ -61,12 +58,18 @@ getByte = do
 
 
 -- Parsing
+
+parseAll :: Parser Brainfuck
+parseAll = do x <- bfParser
+              endOfInput
+              pure x
+
 bfParser :: Parser Brainfuck
-bfParser = catMaybes <$> many (j loopParser <|> j instr <|> noop)
+bfParser = catMaybes <$> many (j loopParser <|> j instr <|> Nothing <$ noop)
   where j = fmap Just
 
-noop :: Parser (Maybe a)
-noop = Nothing <$ sat item (`notElem` "[]+-,.<>")
+noop :: Parser ()
+noop = void $ sat item (`notElem` "[]+-,.<>")
 
 loopParser :: Parser Instruction 
 loopParser = do char '['

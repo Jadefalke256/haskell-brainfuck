@@ -1,3 +1,5 @@
+{-# LANGUAGE LambdaCase #-}
+
 module Parser where
 
 import Data.List
@@ -38,3 +40,9 @@ char c = sat item (== c)
 
 chars :: [Char] -> Parser Char
 chars cs = sat item (`elem` cs)
+
+endOfInput :: Parser ()
+endOfInput = P (\case 
+                  [] -> Just ((), [])
+                  _:_ -> Nothing)
+
